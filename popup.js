@@ -5,17 +5,34 @@ const blockedList = document.getElementById("blocked-list");
 
 let cachedSites = [];
 
-function normalizeDomain(rawInput) {
-  let value = rawInput.trim().toLowerCase();
-  value = value.replace(/^https?:\/\//, "");
-  value = value.replace(/^www\./, "");
-  value = value.split("/")[0];
-  value = value.split("?")[0];
-  value = value.split("#")[0];
-  return value;
+// Returns a normalized target string:
+// - Whole site/subdomain: "x.com" or "news.bbc.co.uk"
+// - Single page/path: "www.bbc.co.uk/bitesize" (keeps specific path, strips trailing slash unless root)
+function normalizeTarget(rawInput) {
+  let trimmed = rawInput.trim().toLowerCase();
+  if (!trimmed) return "";
+
+  const withScheme = /^https?:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(withScheme);
+    const host = parsed.hostname.replace(/^www\./, "");
+    const cleanPath = parsed.pathname.replace(/\/+$/, ""); // e.g. "/bitesize" -> "/bitesize", "/" -> ""
+
+    if (!host) return "";
+    return cleanPath ? `${host}${cleanPath}` : host;
+  } catch {
+    // Fallback if URL parsing fails
+    let fallback = trimmed.replace(/^https?:\/\//, "").replace(/^www\./, "");
+    fallback = fallback.split("?")[0].split("#")[0].replace(/\/+$/, "");
+    return fallback;
+  }
 }
 
-function buildRuleForDomain(domain, id) {
+// Builds a declarativeNetRequest rule:
+// - If target has a path (e.g. "bbc.co.uk/bitesize"), filters "||bbc.co.uk/bitesize"
+// - If target is just a host (e.g. "x.com"), filters "||x.com"
+function buildRuleForTarget(target, id) {
   return {
     id,
     priority: 1,
@@ -23,7 +40,7 @@ function buildRuleForDomain(domain, id) {
       type: "block"
     },
     condition: {
-      urlFilter: `||${domain}`,
+      urlFilter: `||${target}`,
       resourceTypes: ["main_frame"]
     }
   };
@@ -33,8 +50,8 @@ async function syncDynamicRules(sites) {
   const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
   const removeRuleIds = existingRules.map((rule) => rule.id);
 
-  const addRules = (sites || []).map((domain, index) =>
-    buildRuleForDomain(domain, index + 1)
+  const addRules = (sites || []).map((target, index) =>
+    buildRuleForTarget(target, index + 1)
   );
 
   await chrome.declarativeNetRequest.updateDynamicRules({
@@ -56,20 +73,20 @@ function renderList(sitesToDisplay, hasSearchQuery) {
     return;
   }
 
-  sitesToDisplay.forEach((domain) => {
+  sitesToDisplay.forEach((target) => {
     const li = document.createElement("li");
     li.className = "blocked-item";
 
-    const domainSpan = document.createElement("span");
-    domainSpan.textContent = domain;
+    const targetSpan = document.createElement("span");
+    targetSpan.textContent = target;
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "remove-btn";
     removeBtn.textContent = "Remove";
-    removeBtn.addEventListener("click", () => removeSite(domain));
+    removeBtn.addEventListener("click", () => removeSite(target));
 
-    li.appendChild(domainSpan);
+    li.appendChild(targetSpan);
     li.appendChild(removeBtn);
     blockedList.appendChild(li);
   });
@@ -78,7 +95,7 @@ function renderList(sitesToDisplay, hasSearchQuery) {
 function applySearchAndRender() {
   const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
   const filteredSites = query
-    ? cachedSites.filter((domain) => domain.toLowerCase().includes(query))
+    ? cachedSites.filter((target) => target.toLowerCase().includes(query))
     : cachedSites;
 
   renderList(filteredSites, Boolean(query));
@@ -93,16 +110,16 @@ function loadSites() {
 
 function addSite(event) {
   event.preventDefault();
-  const domain = normalizeDomain(input.value);
-  if (!domain) return;
+  const target = normalizeTarget(input.value);
+  if (!target) return;
 
   chrome.storage.local.get({ blockedSites: [] }, async (result) => {
     const updatedSites = Array.isArray(result.blockedSites)
       ? [...result.blockedSites]
       : [];
 
-    if (!updatedSites.includes(domain)) {
-      updatedSites.push(domain);
+    if (!updatedSites.includes(target)) {
+      updatedSites.push(target);
       await syncDynamicRules(updatedSites);
       chrome.storage.local.set({ blockedSites: updatedSites }, () => {
         cachedSites = updatedSites;
@@ -116,12 +133,12 @@ function addSite(event) {
   });
 }
 
-function removeSite(domainToRemove) {
+function removeSite(targetToRemove) {
   chrome.storage.local.get({ blockedSites: [] }, async (result) => {
     const currentSites = Array.isArray(result.blockedSites)
       ? result.blockedSites
       : [];
-    const updatedSites = currentSites.filter((site) => site !== domainToRemove);
+    const updatedSites = currentSites.filter((site) => site !== targetToRemove);
 
     await syncDynamicRules(updatedSites);
     chrome.storage.local.set({ blockedSites: updatedSites }, () => {
