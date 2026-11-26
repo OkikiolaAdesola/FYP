@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Website Blocker</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="container">
+    <section>
+      <label for="site-input"><h1>Insert Link</h1></label>
+      <form id="add-site-form">
+        <input
+          id="site-input"
+          type="text"
+          placeholder="e.g. x.com"
+          required
+        />
+        <button type="submit">Add</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Blocked Websites</h2>
+      <input
+        id="search-input"
+        type="search"
+        placeholder="Search blocked sites..."
+      />
+      <ul id="blocked-list"></ul>
+    </section>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

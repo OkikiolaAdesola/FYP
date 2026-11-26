@@ -1,0 +1,74 @@
+body {
+  margin: 0;
+  width: 320px;
+  font-family: Arial, sans-serif;
+  background-color: #00ffff;
+}
+
+.container {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+h1, h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid #666;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+#blocked-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.blocked-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 2px solid #666;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.remove-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  background-color: #b91c1c;
+}
+
+#search-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
